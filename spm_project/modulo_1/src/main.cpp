@@ -6,10 +6,11 @@
 #include "partition.h"
 
 int main() {
-    size_t N = 1 << 24;   // 16M elements (more realistic)
+    size_t N = 1 << 24;   // 16M elements 
     uint32_t P = 1024;    // must be power of 2
 
     std::vector<uint64_t> keys(N);
+    // std::vector<uint32_t> part_id(N);
     std::vector<uint32_t> part_id(N);
 
     // deterministic input
@@ -21,15 +22,21 @@ int main() {
     // timing start
     auto start = std::chrono::high_resolution_clock::now();
 
-    compute_partitions(keys, part_id, P);
-    // compute_partitions_avx2(keys, part_id, P);
+    // -----------------------------
+    // Choose function based on build
+    // -----------------------------
+    #ifdef USE_AVX2
+        compute_partitions_avx2(keys, part_id, P);
+    #else
+        compute_partitions(keys, part_id, P);
+    #endif
 
     // timing end
     auto end = std::chrono::high_resolution_clock::now();
 
     double time = std::chrono::duration<double>(end - start).count();
 
-    // checksum (prevents compiler optimizing away)
+    // simple checksum (for correctness)
     uint64_t checksum = 0;
     for (auto v : part_id) checksum += v;
 
