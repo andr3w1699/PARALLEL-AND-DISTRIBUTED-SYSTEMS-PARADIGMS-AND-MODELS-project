@@ -43,5 +43,48 @@ int main() {
     std::cout << "Time: " << time << " s\n";
     std::cout << "Checksum: " << checksum << std::endl;
 
-    return 0;
+    // -----------------------------
+    // Distribution analysis
+    // -----------------------------
+    std::vector<uint64_t> histogram(P, 0);
+
+    // Count elements per partition
+    for (size_t i = 0; i < N; i++) {
+        histogram[part_id[i]]++;
+    }
+
+    // Compute statistics
+    uint64_t min_count = histogram[0];
+    uint64_t max_count = histogram[0];
+    double sum = 0.0;
+
+    for (uint32_t i = 0; i < P; i++) {
+        if (histogram[i] < min_count) min_count = histogram[i];
+        if (histogram[i] > max_count) max_count = histogram[i];
+        sum += histogram[i];
+    }
+
+    double mean = sum / P;
+
+    // Compute variance
+    double variance = 0.0;
+    for (uint32_t i = 0; i < P; i++) {
+        double diff = histogram[i] - mean;
+        variance += diff * diff;
+    }
+    variance /= P;
+
+    double stddev = std::sqrt(variance);
+
+    // Print results
+    std::cout << "\n--- Distribution stats ---\n";
+    std::cout << "Min: " << min_count << "\n";
+    std::cout << "Max: " << max_count << "\n";
+    std::cout << "Mean: " << mean << "\n";
+    std::cout << "Stddev: " << stddev << "\n";
+
+    double imbalance = (double)max_count / mean;
+    std::cout << "Imbalance (max/mean): " << imbalance << "\n";
+
+return 0;
 }
