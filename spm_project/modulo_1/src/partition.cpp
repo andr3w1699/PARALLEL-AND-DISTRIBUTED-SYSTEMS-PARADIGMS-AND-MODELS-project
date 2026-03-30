@@ -66,7 +66,16 @@ void compute_partitions_avx2(const std::vector<uint64_t>& keys,
     __m256i mask = _mm256_set1_epi64x(P - 1);
     __m256i mul_const = _mm256_set1_epi64x(0xff51afd7ed558ccd);
 
+    size_t prefetch_distance = 64 * 4; // 8 iterations ahead, 4 keys per iteration
+
     for (; i + 4 <= N; i += 4) {
+
+        // Prefetch future keys
+        if (i + prefetch_distance < N) {
+            _mm_prefetch((const char*)&keys[i + prefetch_distance], _MM_HINT_T0);
+        }
+
+
         // Load 4 keys
         // example: k = [keys[i], keys[i+1], keys[i+2], keys[i+3]]
         __m256i k = _mm256_loadu_si256((__m256i*)&keys[i]);
