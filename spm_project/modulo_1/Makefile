@@ -1,52 +1,86 @@
-# Compiler
+# =========================
+# CPU COMPILER
+# =========================
 CXX = g++
 
-# Base flags
+# =========================
+# CUDA COMPILER
+# =========================
+NVCC = nvcc
+
+# =========================
+# FLAGS
+# =========================
 CXXFLAGS = -std=c++20 -Wall -Wextra
 
-# Optimization flags
-# -O3 enables aggressive optimizations, inlining, loop unrolling, vectorization
-# -march=native enables instructions specific to the host CPU and AVX2 automaticcally if supported
-# -mavx2 Explicitly enable AVX2 instructions (safe for intrinsics) 
 OPTFLAGS = -O3 -march=native
-#OPTFLAGS = -O3 -march=native -mavx2
-
-# Vectorization report
 VECFLAGS = -fopt-info-vec-all
 
-# Target
+# CUDA flags
+CUDAFLAGS = -O3
+
+# =========================
+# TARGETS
+# =========================
 TARGET = partition
+CUDA_TARGET = partition_cuda
 
-# Source files
-SRC = src/main.cpp src/partition.cpp
-
-# Object files
-# pattern substitution for example: src/main.cpp -> src/main.o, src/partition.cpp -> src/partition.o,...
+# =========================
+# SOURCE FILES
+# =========================
+#SRC = src/main.cpp src/partition.cpp
 OBJ = $(SRC:.cpp=.o)
 
-# default target: it builds partition executable
+CUDA_SRC = src/main_cuda.cu src/partition_cuda.cu
+CUDA2_SRC = cuda_2/main_cuda.cu cuda_2/partition_cuda.cu
+CUDA3_SRC = cuda_3/main_cuda.cu cuda_3/partition_cuda.cu
+
+# =========================
+# DEFAULT BUILD
+# =========================
 all: $(TARGET)
 
-# Linking step: $@ → target name, $^ → all dependencies (object files .o)
-# equivalent to g++ flags -o partition src/main.o src/partition.o
+# =========================
+# CPU BUILD
+# =========================
 $(TARGET): $(OBJ)
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $^
-# Compilation rule. Generic rule: $< input file, $@ output file
-# Example g++ flags -c src/main.cpp -o src/main.o
+
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -c $< -o $@
 
-# Vectorization build with vectorization report
-# to run make vec on Bash
+# =========================
+# VECTOR REPORT
+# =========================
 vec:
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) $(VECFLAGS) $(SRC) -o $(TARGET)
-# no vectorization build: -fno-tree-vectorize disables compiler auto-vectorization
+
+# =========================
+# NO VECTORIZATION
+# =========================
 novec:
 	$(CXX) $(CXXFLAGS) -O3 -fno-tree-vectorize $(SRC) -o $(TARGET)_novec
-# AVX2 intrinsics build (requires AVX2 enabled)
+
+# =========================
+# AVX2 VERSION
+# =========================
 avx2:
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -mavx2 -DUSE_AVX2 $(SRC) -o $(TARGET)_avx2
 
-# Clean
+# =========================
+# CUDA BUILD
+# =========================
+cuda:
+	$(NVCC) $(CUDAFLAGS) $(CUDA_SRC) -o $(CUDA_TARGET)
+
+cuda2:
+	$(NVCC) $(CUDAFLAGS) $(CUDA2_SRC) -o $(CUDA_TARGET)_2
+
+cuda3:
+	$(NVCC) $(CUDAFLAGS) $(CUDA3_SRC) -o $(CUDA_TARGET)_3
+
+# =========================
+# CLEAN
+# =========================
 clean:
-	rm -f $(OBJ) $(TARGET) $(TARGET)_novec $(TARGET)_avx2 $(TARGET)_vec
+	rm -f $(OBJ) $(TARGET) $(TARGET)_novec $(TARGET)_avx2 $(CUDA_TARGET)
