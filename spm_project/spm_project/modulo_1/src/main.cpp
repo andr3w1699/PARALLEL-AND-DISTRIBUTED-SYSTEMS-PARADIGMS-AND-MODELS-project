@@ -84,5 +84,13 @@ int main() {
     double imbalance = (double)max_count / mean;
     std::cout << "Imbalance (max/mean): " << imbalance << "\n";
 
+    std::cout << "\nFirst 20 partition IDs:\n";
+    size_t limit = std::min<size_t>(20, part_id.size());
+
+    for (size_t i = 0; i < limit; i++) {
+        std::cout << part_id[i] << " ";
+    }
+std::cout << std::endl;
+
 return 0;
 }

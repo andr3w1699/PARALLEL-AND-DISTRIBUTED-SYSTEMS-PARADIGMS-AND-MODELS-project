@@ -80,7 +80,8 @@ void compute_partitions_avx2(const std::vector<uint64_t>& keys,
         // Load 4 keys
         // example: k = [keys[i], keys[i+1], keys[i+2], keys[i+3]]
         // unaligned load
-        __m256i k = _mm256_loadu_si256((__m256i*)&keys[i]);
+        // __m256i k = _mm256_loadu_si256((__m256i*)&keys[i]);
+        __m256i k = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(keys.data() + i));
 
         // hash: x ^= x >> 33
         __m256i shift = _mm256_srli_epi64(k, 33);
@@ -133,6 +134,7 @@ void compute_partitions_avx2(const std::vector<uint64_t>& keys,
         // store back into part_id 
         _mm_storeu_si128((__m128i*)&part_id[i], _mm_loadu_si128((__m128i*)tmp));
         */
+       /*
        // ATTEMPT 3 Even optimized version fully SIMD
        __m256i mask32 = _mm256_set1_epi64x(0xFFFFFFFF);
        __m256i k32 = _mm256_and_si256(k, mask32);  // keep lower 32 bits
@@ -143,6 +145,25 @@ void compute_partitions_avx2(const std::vector<uint64_t>& keys,
        __m128i result = _mm_unpacklo_epi32(lo, hi); // final 4x32-bit vector
        // unaligned store 
        _mm_storeu_si128((__m128i*)&part_id[i], result);
+       */
+
+        __m128i lo = _mm256_castsi256_si128(k);
+        __m128i hi = _mm256_extracti128_si256(k, 1);
+
+        // extract low 32 bits properly
+        lo = _mm_shuffle_epi32(lo, _MM_SHUFFLE(2,0,2,0));
+        hi = _mm_shuffle_epi32(hi, _MM_SHUFFLE(2,0,2,0));
+
+        // combine without reordering
+        __m128i result = _mm_castps_si128(
+            _mm_shuffle_ps(
+                _mm_castsi128_ps(lo),
+                _mm_castsi128_ps(hi),
+                _MM_SHUFFLE(1,0,1,0)
+            )
+        );
+
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(part_id.data() + i), result);
     }
 
     // tail case

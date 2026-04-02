@@ -54,6 +54,13 @@ int main() {
     std::cout << "Time: " << time << " s\n";
     std::cout << "Checksum: " << checksum << "\n";
 
+    // print first 20 elements of part_id
+    std::cout << "First 20 partition IDs: ";
+    for (size_t i = 0; i < 20 && i < N; i++) {
+        std::cout << part_id[i] << " ";
+    }
+    std::cout << "\n";
+
     free(keys);
     free(part_id);
 

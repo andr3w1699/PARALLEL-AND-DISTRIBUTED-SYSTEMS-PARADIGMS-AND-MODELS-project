@@ -2,6 +2,8 @@
 #include <random>
 #include <chrono>
 #include <cuda_runtime.h>
+#include <cstdlib>
+#include <cstring>
 
 #include "partition_cuda.cuh"
 
@@ -12,18 +14,16 @@ int main() {
     uint64_t* keys;
     uint32_t* part_id;
 
-    // ==========================
-    // PINNED MEMORY ALLOCATION
-    // ==========================
+    // REQUIRED for async transfers
     cudaMallocHost(&keys, N * sizeof(uint64_t));
     cudaMallocHost(&part_id, N * sizeof(uint32_t));
     // Zero-initialize the pinned memory
     if (keys) {
-        memset(keys, 0, N * sizeof(uint64_t));
+        ::memset(keys, 0, N * sizeof(uint64_t));
     }
     if (part_id) {
-        memset(part_id, 0, N * sizeof(uint32_t));
-    }
+        ::memset(part_id, 0, N * sizeof(uint32_t));
+    }   
 
     std::mt19937_64 rng(42);
     for (size_t i = 0; i < N; i++) {
@@ -45,6 +45,12 @@ int main() {
 
     std::cout << "Total CUDA time: " << total_time << " s\n";
     std::cout << "Checksum: " << checksum << "\n";
+
+    // Print first 20 partition IDs
+    std::cout << "\nFirst 20 partition IDs:\n";
+    for (size_t i = 0; i < 20 && i < N; i++) {
+        std::cout << "part_id[" << i << "] = " << part_id[i] << "\n";
+    }
 
     cudaFreeHost(keys);
     cudaFreeHost(part_id);
