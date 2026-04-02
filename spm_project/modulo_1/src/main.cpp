@@ -7,11 +7,12 @@
 
 int main() {
     size_t N = 1 << 24;   // 16M elements 
-    uint32_t P = 1024;    // must be power of 2
+    uint32_t P = 256;    // must be power of 2
 
     std::vector<uint64_t> keys(N);
-    // std::vector<uint32_t> part_id(N);
     std::vector<uint32_t> part_id(N);
+    //std::vector<uint64_t> keys(N, 0);
+    //std::vector<uint32_t> part_id(N, 0);
 
     // deterministic input
     std::mt19937_64 rng(42);
@@ -22,9 +23,6 @@ int main() {
     // timing start
     auto start = std::chrono::high_resolution_clock::now();
 
-    // -----------------------------
-    // Choose function based on build
-    // -----------------------------
     #ifdef USE_AVX2
         compute_partitions_avx2(keys, part_id, P);
     #else

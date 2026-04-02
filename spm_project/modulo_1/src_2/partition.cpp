@@ -1,9 +1,7 @@
 #include "partition.h"
 #include <immintrin.h>
 
-// ==========================
-// SCALAR VERSION (AUTO-VECTORIZABLE)
-// ==========================
+
 void compute_partitions(const uint64_t* __restrict__ keys,
                         uint32_t* __restrict__ part_id,
                         size_t N,
@@ -14,7 +12,7 @@ void compute_partitions(const uint64_t* __restrict__ keys,
     size_t i = 0;
 
     // unroll x4
-    #pragma GCC ivdep
+    #pragma GCC ivdep // compiler directive: ignore data dependencies (for auto-vectorization)  
     for (; i + 4 <= N; i += 4) {
 
         /*
@@ -23,6 +21,8 @@ void compute_partitions(const uint64_t* __restrict__ keys,
         _mm_prefetch((const char*)&keys[i + 64], _MM_HINT_T0);
         }
         */
+
+        // hash directly inlined to avoid function call
 
         uint64_t x0 = keys[i];
         uint64_t x1 = keys[i+1];
@@ -81,13 +81,20 @@ void compute_partitions_avx2(const uint64_t* __restrict__ keys,
     __m256i mulc = _mm256_set1_epi64x(0xff51afd7ed558ccd);
 
     // process 8 elements per iteration
+    // unroll x2 
     for (; i + 8 <= N; i += 8) {
 
+        /*
         // PREFETCH future data (128 elements ahead)
         if (i + 8 < N) {
         _mm_prefetch((const char*)&keys[i + 128], _MM_HINT_T0);
         }
 
+        */
+        
+
+        // used aligned load/store for better performance
+        // need to ensure keys and part_id are 32-byte aligned (done in main.cpp)
         __m256i k0 = _mm256_load_si256((__m256i*)&keys[i]);
         __m256i k1 = _mm256_load_si256((__m256i*)&keys[i+4]);
 
@@ -110,7 +117,7 @@ void compute_partitions_avx2(const uint64_t* __restrict__ keys,
         k0 = _mm256_and_si256(k0, mask);
         k1 = _mm256_and_si256(k1, mask);
 
-        // pack 64 → 32
+        // pack 64 to 32
         __m128i lo0 = _mm256_castsi256_si128(k0);
         __m128i hi0 = _mm256_extracti128_si256(k0, 1);
         __m128i lo1 = _mm256_castsi256_si128(k1);

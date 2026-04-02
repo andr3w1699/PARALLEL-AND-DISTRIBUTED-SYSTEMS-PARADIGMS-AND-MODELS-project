@@ -2,15 +2,23 @@
 #include <random>
 #include <chrono>
 #include <cstdlib>
+#include <cstring>
 
 #include "partition_cuda.cuh"
 
 int main() {
     size_t N = 1 << 24;
-    uint32_t P = 1024;
+    uint32_t P = 256;
 
     uint64_t* keys = (uint64_t*) aligned_alloc(32, N * sizeof(uint64_t));
     uint32_t* part_id = (uint32_t*) aligned_alloc(32, N * sizeof(uint32_t));
+    // Zero-initialize the allocated memory
+    if (keys) {
+        ::memset(keys, 0, N * sizeof(uint64_t));
+    }
+    if (part_id) {
+        ::memset(part_id, 0, N * sizeof(uint32_t));
+    }
 
     std::mt19937_64 rng(42);
     for (size_t i = 0; i < N; i++) {

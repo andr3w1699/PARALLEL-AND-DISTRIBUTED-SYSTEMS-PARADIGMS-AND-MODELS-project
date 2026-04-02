@@ -32,7 +32,7 @@ __global__ void partition_kernel(const uint64_t* keys,
 }
 
 // ==========================
-// ADVANCED HOST FUNCTION
+//  HOST FUNCTION
 // ==========================
 void compute_partitions_cuda(const uint64_t* keys,
                              uint32_t* part_id,

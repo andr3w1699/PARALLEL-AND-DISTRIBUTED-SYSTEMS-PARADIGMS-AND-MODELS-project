@@ -3,9 +3,9 @@
 # =========================
 # Build all versions
 # =========================
-make cuda
-make cuda2
-make cuda3
+make partition_cuda
+make partition_cuda_2
+make partition_cuda_3
 
 # =========================
 # Variables

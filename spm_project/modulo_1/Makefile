@@ -1,86 +1,56 @@
-# =========================
-# CPU COMPILER
-# =========================
+
 CXX = g++
 
-# =========================
-# CUDA COMPILER
-# =========================
 NVCC = nvcc
 
-# =========================
-# FLAGS
-# =========================
 CXXFLAGS = -std=c++20 -Wall -Wextra
-
 OPTFLAGS = -O3 -march=native
+SUPEROPTFLAGS = -O3 -march=native -funroll-loops -fprefetch-loop-arrays -flto -ffast-math -falign-functions=32 -falign-loops=32 -falign-jumps=32 -fstrict-aliasing -fwhole-program -fno-exceptions -fno-rtti
 VECFLAGS = -fopt-info-vec-all
-
-# CUDA flags
 CUDAFLAGS = -O3
 
-# =========================
-# TARGETS
-# =========================
-TARGET = partition
-CUDA_TARGET = partition_cuda
+TARGETS_CPU = partition partition_optimized partition_novec partition_novec_optimized partition_avx2 partition_avx2_optimized
+TARGETS_CUDA = partition_cuda partition_cuda_2 partition_cuda_3
 
-# =========================
-# SOURCE FILES
-# =========================
-#SRC = src/main.cpp src/partition.cpp
-OBJ = $(SRC:.cpp=.o)
-
+SRC = src/main.cpp src/partition.cpp
+SRC2 = src_2/main.cpp src_2/partition.cpp
 CUDA_SRC = src/main_cuda.cu src/partition_cuda.cu
 CUDA2_SRC = cuda_2/main_cuda.cu cuda_2/partition_cuda.cu
 CUDA3_SRC = cuda_3/main_cuda.cu cuda_3/partition_cuda.cu
 
-# =========================
-# DEFAULT BUILD
-# =========================
-all: $(TARGET)
+all: cpu cuda
 
-# =========================
-# CPU BUILD
-# =========================
-$(TARGET): $(OBJ)
-	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $^
+cpu: $(TARGETS_CPU)
 
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -c $< -o $@
+partition:
+	$(CXX) $(CXXFLAGS) $(SUPEROPTFLAGS) $(VECFLAGS) $(SRC) -o $@
 
-# =========================
-# VECTOR REPORT
-# =========================
-vec:
-	$(CXX) $(CXXFLAGS) $(OPTFLAGS) $(VECFLAGS) $(SRC) -o $(TARGET)
+partition_optimized:
+	$(CXX) $(CXXFLAGS) $(SUPEROPTFLAGS) $(SRC2) -o $@
 
-# =========================
-# NO VECTORIZATION
-# =========================
-novec:
-	$(CXX) $(CXXFLAGS) -O3 -fno-tree-vectorize $(SRC) -o $(TARGET)_novec
+partition_novec:
+	$(CXX) $(CXXFLAGS) -O3 -fno-tree-vectorize $(SRC) -o $@
 
-# =========================
-# AVX2 VERSION
-# =========================
-avx2:
-	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -mavx2 -DUSE_AVX2 $(SRC) -o $(TARGET)_avx2
+partition_novec_optimized:
+	$(CXX) $(CXXFLAGS) -O3 -fno-tree-vectorize $(SRC2) -o $@
 
-# =========================
-# CUDA BUILD
-# =========================
-cuda:
-	$(NVCC) $(CUDAFLAGS) $(CUDA_SRC) -o $(CUDA_TARGET)
+partition_avx2:
+	$(CXX) $(CXXFLAGS)  $(SUPEROPTFLAGS) -mavx2 -DUSE_AVX2 $(SRC) -o $@
 
-cuda2:
-	$(NVCC) $(CUDAFLAGS) $(CUDA2_SRC) -o $(CUDA_TARGET)_2
+partition_avx2_optimized:
+	$(CXX) $(CXXFLAGS)  $(SUPEROPTFLAGS) -mavx2 -DUSE_AVX2 $(SRC2) -o $@
 
-cuda3:
-	$(NVCC) $(CUDAFLAGS) $(CUDA3_SRC) -o $(CUDA_TARGET)_3
 
-# =========================
-# CLEAN
-# =========================
+cuda: $(TARGETS_CUDA)
+
+partition_cuda:
+	$(NVCC) $(CUDAFLAGS) $(CUDA_SRC) -o $@
+
+partition_cuda_2:
+	$(NVCC) $(CUDAFLAGS) $(CUDA2_SRC) -o $@
+
+partition_cuda_3:
+	$(NVCC) $(CUDAFLAGS) $(CUDA3_SRC) -o $@
+
 clean:
-	rm -f $(OBJ) $(TARGET) $(TARGET)_novec $(TARGET)_avx2 $(CUDA_TARGET)
+	rm -f $(TARGETS_CPU) $(TARGETS_CUDA)

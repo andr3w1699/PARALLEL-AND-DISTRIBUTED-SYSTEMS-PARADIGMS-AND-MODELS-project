@@ -70,14 +70,16 @@ void compute_partitions_avx2(const std::vector<uint64_t>& keys,
 
     for (; i + 4 <= N; i += 4) {
 
+        /*
         // Prefetch future keys
         if (i + prefetch_distance < N) {
             _mm_prefetch((const char*)&keys[i + prefetch_distance], _MM_HINT_T0);
         }
-
+        */
 
         // Load 4 keys
         // example: k = [keys[i], keys[i+1], keys[i+2], keys[i+3]]
+        // unaligned load
         __m256i k = _mm256_loadu_si256((__m256i*)&keys[i]);
 
         // hash: x ^= x >> 33
@@ -139,6 +141,7 @@ void compute_partitions_avx2(const std::vector<uint64_t>& keys,
        lo = _mm_shuffle_epi32(lo, _MM_SHUFFLE(2,0,2,0)); // extract lower 32 bits of k0, k1
        hi = _mm_shuffle_epi32(hi, _MM_SHUFFLE(2,0,2,0)); // extract lower 32 bits of k2, k3
        __m128i result = _mm_unpacklo_epi32(lo, hi); // final 4x32-bit vector
+       // unaligned store 
        _mm_storeu_si128((__m128i*)&part_id[i], result);
     }
 

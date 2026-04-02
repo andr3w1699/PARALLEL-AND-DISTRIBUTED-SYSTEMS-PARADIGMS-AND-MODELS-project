@@ -1,30 +1,25 @@
+
 #!/bin/bash
+# =========================
+# CONFIGURATION
+# =========================
+RUNS=20  # Number of runs for each version
+# Fixed number of elements (must match the value in your main programs)
+N=16777216  # 1<<24
 
 # =========================
-# CONFIG
+# BUILD ALL BINARIES
 # =========================
-RUNS=50
-
-# =========================
-# BUILD ALL TARGETS
-# =========================
-echo "Building all versions..."
+echo "Building all binaries..."
 make clean
-make novec
-make vec
-make avx2
-make novec_optimized
-make vec_optimized
-make avx2_optimized
-make cuda
-make cuda2
-make cuda3
+make all
 echo "Build completed."
 echo
 
 # =========================
-# FUNCTION TO RUN BENCHMARK
+# BENCHMARK FUNCTION
 # =========================
+# Arguments: exe label pattern
 run_benchmark() {
     exe=$1
     label=$2
@@ -32,16 +27,17 @@ run_benchmark() {
 
     sum=0
     sum_sq=0
+    times=()
 
     echo "Running $label ..."
 
+
     for i in $(seq 1 $RUNS); do
-        output=$(./$exe)   # CPU programs do not take arguments
-
-        # Extract time (number before 's')
+        # Run without arguments (N is fixed in the code)
+        output=$(./$exe)
+        # Extract time (number before 's' or ms)
         time=$(echo "$output" | grep "$pattern" | awk '{print $(NF-1)}')
-
-        # Accumulate
+        times+=("$time")
         sum=$(echo "$sum + $time" | bc -l)
         sum_sq=$(echo "$sum_sq + ($time * $time)" | bc -l)
     done
@@ -50,14 +46,24 @@ run_benchmark() {
     var=$(echo "($sum_sq / $RUNS) - ($avg * $avg)" | bc -l)
     std=$(echo "sqrt($var)" | bc -l)
 
+    # Throughput: N / avg_time (convert ms to s if needed)
+    if [[ "$pattern" == *ms* ]]; then
+        avg_s=$(echo "$avg / 1000" | bc -l)
+    else
+        avg_s=$avg
+    fi
+    throughput=$(echo "$N / $avg_s" | bc -l)
+
     # Print results
-    echo "$label AVG: $avg s"
+    echo "$label AVG: $avg_s s"
     echo "$label STD: $std s"
+    echo "$label THROUGHPUT: $throughput keys/s"
     echo
 
-    # Export results for speedup calculation
-    eval "${label}_avg=$avg"
+    # Export for speedup calculation
+    eval "${label}_avg=$avg_s"
     eval "${label}_std=$std"
+    eval "${label}_throughput=$throughput"
 }
 
 # =========================
@@ -88,7 +94,6 @@ compute_speedup() {
     base=$1
     other=$2
     label=$3
-
     speedup=$(echo "$base / $other" | bc -l)
     echo "$label: $speedup x"
 }
